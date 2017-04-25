@@ -89,28 +89,32 @@ def batchPreprocess(X):
 #### Augmentation (Transformation)
 Here, I employed rotation (within a certain degree range) and warping through projective transforms (skimage). Projective transforms were chosen due to their similarity to changes in camera perspective.
 
-Credits to Alex for helping me figure out projective transforms! His blog [here](http://navoshta.com/).
+Credits to Alex for helping me figure out projective transforms! His code and write-up helped clarify the frankly rather confusing usage of skimage projective transforms. His blog here.
 
 NOTE: In earlier testing, doubling the dataset size without re-balancing it already yielded an accuracy of 95% on the validation data. While that seems nice, there is a high chance that the incorrect 5% stems from under-represented classes, rendering the prediction useless.
 ```python
+from skimage.transform import ProjectiveTransform
+from skimage.transform import rotate
+from skimage.transform import warp
+
 def randomTransform(image, intensity):
     
     # Rotate image within a set range, amplified by intensity of overall transform.
-    rotation = 30 * intensity
+    rotation = 20 * intensity
     # print(image.shape)
-    rotated = rotate(image, random.uniform(-rotation,rotation), mode = 'edge')
+    rotated = rotate(image, np.random.uniform(-rotation,rotation), mode = 'edge')
     
     # Projection transform on image, amplified by intensity.
     image_size = image.shape[0]
     magnitude = image_size * 0.3 * intensity
-    tl_top = random.uniform(-magnitude, magnitude)     # Top left corner, top margin
-    tl_left = random.uniform(-magnitude, magnitude)    # Top left corner, left margin
-    bl_bottom = random.uniform(-magnitude, magnitude)  # Bottom left corner, bottom margin
-    bl_left = random.uniform(-magnitude, magnitude)    # Bottom left corner, left margin
-    tr_top = random.uniform(-magnitude, magnitude)     # Top right corner, top margin
-    tr_right = random.uniform(-magnitude, magnitude)   # Top right corner, right margin
-    br_bottom = random.uniform(-magnitude, magnitude)  # Bottom right corner, bottom margin
-    br_right = random.uniform(-magnitude, magnitude)   # Bottom right corner, right margin
+    tl_top = np.random.uniform(-magnitude, magnitude)     # Top left corner, top margin
+    tl_left = np.random.uniform(-magnitude, magnitude)    # Top left corner, left margin
+    bl_bottom = np.random.uniform(-magnitude, magnitude)  # Bottom left corner, bottom margin
+    bl_left = np.random.uniform(-magnitude, magnitude)    # Bottom left corner, left margin
+    tr_top = np.random.uniform(-magnitude, magnitude)     # Top right corner, top margin
+    tr_right = np.random.uniform(-magnitude, magnitude)   # Top right corner, right margin
+    br_bottom = np.random.uniform(-magnitude, magnitude)  # Bottom right corner, bottom margin
+    br_right = np.random.uniform(-magnitude, magnitude)   # Bottom right corner, right margin
     
     transform = ProjectiveTransform()
     transform.estimate(np.array((
@@ -126,6 +130,21 @@ def randomTransform(image, intensity):
             )))
     transformed = warp(rotated, transform, output_shape = (image_size, image_size), order = 1, mode = 'edge')
     return transformed
+
+def batchAugment(X, y, multiplier = 2):
+    X_train_aug = []
+    y_train_aug = []
+    for i in range(len(X)):
+        for j in range(multiplier):
+            augmented = randomTransform(X[i], 0.5)
+            X_train_aug.append(augmented)
+            y_train_aug.append(y[i])
+        X_train_aug.append(X[i])
+        y_train_aug.append(y[i])
+        
+    X_train_aug, y_train_aug = shuffle(X_train_aug, y_train_aug)
+    print("New augmented size is: ", len(X_train_aug))
+    return X_train_aug, y_train_aug
 ```
 
 #### Altogether Now
