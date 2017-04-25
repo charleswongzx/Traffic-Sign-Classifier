@@ -1,79 +1,201 @@
-#**Traffic Sign Recognition** 
-
-##Writeup Template
-
-###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
+# **Traffic Sign Recognition** 
 ---
 
-**Build a Traffic Sign Recognition Project**
+**Build a Traffic Sign Recognition Network**
 
-The goals / steps of this project are the following:
-* Load the data set (see below for links to the project data set)
-* Explore, summarize and visualize the data set
+When building a network to accurately recognise and classify traffic signs, I followed these steps:
+* Load the data set (I used the German Traffic Signs Dataset, **link below**!)
+* Explore, summarize and visualize the dataset
+* Pre-process, balance and augment the dataset
 * Design, train and test a model architecture
 * Use the model to make predictions on new images
 * Analyze the softmax probabilities of the new images
-* Summarize the results with a written report
 
 
 [//]: # (Image References)
 
-[image1]: ./examples/visualization.jpg "Visualization"
-[image2]: ./examples/grayscale.jpg "Grayscaling"
-[image3]: ./examples/random_noise.jpg "Random Noise"
+[image1]: ./images/hist_orig.png "Visualisation"
+[image2]: ./examples/hist_new "New Visualisation"
+[image3]: ./examples/processed_images.jpg "Processed Images"
 [image4]: ./examples/placeholder.png "Traffic Sign 1"
 [image5]: ./examples/placeholder.png "Traffic Sign 2"
 [image6]: ./examples/placeholder.png "Traffic Sign 3"
 [image7]: ./examples/placeholder.png "Traffic Sign 4"
 [image8]: ./examples/placeholder.png "Traffic Sign 5"
 
-## Rubric Points
-###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/481/view) individually and describe how I addressed each point in my implementation.  
 
----
-###Writeup / README
+Here's a link to my [Github repo](https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project/blob/master/Traffic_Sign_Classifier.ipynb).
 
-####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one. You can submit your writeup as markdown or pdf. You can use this template as a guide for writing the report. The submission includes the project code.
+### Data Set Summary & Exploration
+Stats are as follows:
+Number of training examples = 34799
+Number of vaidation examples = 4410
+Number of testing examples = 12630
+Image data shape = (32, 32, 3)
+Number of classes = 43
 
-You're reading it! and here is a link to my [project code](https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project/blob/master/Traffic_Sign_Classifier.ipynb)
+####  Exploratory Visualization of the Dataset
 
-###Data Set Summary & Exploration
-
-####1. Provide a basic summary of the data set. In the code, the analysis should be done using python, numpy and/or pandas methods rather than hardcoding results manually.
-
-I used the pandas library to calculate summary statistics of the traffic
-signs data set:
-
-* The size of training set is ?
-* The size of the validation set is ?
-* The size of test set is ?
-* The shape of a traffic sign image is ?
-* The number of unique classes/labels in the data set is ?
-
-####2. Include an exploratory visualization of the dataset.
-
-Here is an exploratory visualization of the data set. It is a bar chart showing how the data ...
+The German Traffic Signs dataset is visualised in the below histogram. It is split into 43 categories of signs, with the number of images in each category on the y-axis. Note the extremely unequal distribution of the dataset. This can and will introduce bias into the training model, and will be addressed below. Also, a low of ~200 examples for some classes is simply too low, and will need to be augmented.
 
 ![alt text][image1]
 
-###Design and Test a Model Architecture
+#### Data Preparation and Pre-processing
 
-####1. Describe how you preprocessed the image data. What techniques were chosen and why did you choose these techniques? Consider including images showing the output of each preprocessing technique. Pre-processing refers to techniques such as converting to grayscale, normalization, etc. (OPTIONAL: As described in the "Stand Out Suggestions" part of the rubric, if you generated additional data for training, describe why you decided to generate additional data, how you generated the data, and provide example images of the additional data. Then describe the characteristics of the augmented training set like number of images in the set, number of images for each class, etc.)
 
-As a first step, I decided to convert the images to grayscale because ...
+While the data can indeed simply be inserted into the model to begin training as-is, it would be to our benefit to process the data as follows:
 
-Here is an example of a traffic sign image before and after grayscaling.
+##### 1. Grayscaling
+Grayscaling reduces the image to a single layer instead of 3 RGB channels, drastically reducing the number of variables the network has to deal with. This results in vastly improved processing times. While loss of information due to loss of colour could be a concern, my tests with both RGB and BW images show no significant difference in performance.
+
+##### 2. Equalisation
+Equalisation of the image helps improve contrast and provides clearer, more well-defined edges. I initially used OpenCV's histogram equalisation, but found the results to be blurry and of poor contrast. skimage's adaptive CLAHE implementation took longer to process, but gave a far superior result.
+
+##### 3. Normalisation
+Normalisation involves scaling the image's intensity range from (0, 255) to (-1, 1). Smaller values with means about 0 prevent our gradients from going out of control and finding incorrect local minima.
+
+##### 4. Augmentation (Transformation)
+Due to the low number of examples from some classes, I've chosen to re-balance the dataset to prevent bias in the mode. There after, I tripled the size of the dataset over all classes, including the ones already heavily represented. I initially attempted penalised classification to make up for the dataset imbalance, but found good ol' data augmentation more effective.
+
+##### 5. Shuffling
+Rather self-explanatory - shuffles the dataset around so that the model doesn't train itself on the ORDER of the images instead of the features.
+
+
+#### Grayscaling, Equalisation and Normalisation
+My batch preprocess function is as follows. I began with conversion to grayscale, contrast limited adaptive histogram equalisation and normalisation from -1 to 1.
+
+I initially used OpenCV's histogram equalisation, but found skimage's CLAHE implementation gave a much better result with more defined edges.
+~~~
+from skimage import exposure
+from sklearn.utils import shuffle
+from skimage import exposure
+import cv2
+
+def batchPreprocess(X):
+    X_norm = []
+    for image in X:
+            bw = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            equ = exposure.equalize_adapthist(bw)
+            equ = (equ * 2.0/equ.max())
+            equ = np.reshape(equ,(32,32,1))-1
+            X_norm.append(equ)
+    return np.array(X_norm)
+~~~
+
+#### Augmentation (Transformation)
+Here, I employed rotation (within a certain degree range) and warping through projective transforms (skimage). Projective transforms were chosen due to their similarity to changes in camera perspective.
+
+Credits to navoshta for helping me figure out projective transforms!
+
+NOTE: In earlier testing, doubling the dataset size without re-balancing it already yielded an accuracy of 95% on the validation data. While that seems nice, there is a high chance that the incorrect 5% stems from under-represented classes, rendering the prediction useless.
+~~~
+def randomTransform(image, intensity):
+    
+    # Rotate image within a set range, amplified by intensity of overall transform.
+    rotation = 30 * intensity
+    # print(image.shape)
+    rotated = rotate(image, random.uniform(-rotation,rotation), mode = 'edge')
+    
+    # Projection transform on image, amplified by intensity.
+    image_size = image.shape[0]
+    magnitude = image_size * 0.3 * intensity
+    tl_top = random.uniform(-magnitude, magnitude)     # Top left corner, top margin
+    tl_left = random.uniform(-magnitude, magnitude)    # Top left corner, left margin
+    bl_bottom = random.uniform(-magnitude, magnitude)  # Bottom left corner, bottom margin
+    bl_left = random.uniform(-magnitude, magnitude)    # Bottom left corner, left margin
+    tr_top = random.uniform(-magnitude, magnitude)     # Top right corner, top margin
+    tr_right = random.uniform(-magnitude, magnitude)   # Top right corner, right margin
+    br_bottom = random.uniform(-magnitude, magnitude)  # Bottom right corner, bottom margin
+    br_right = random.uniform(-magnitude, magnitude)   # Bottom right corner, right margin
+    
+    transform = ProjectiveTransform()
+    transform.estimate(np.array((
+            (tl_left, tl_top),
+            (bl_left, image_size - bl_bottom),
+            (image_size - br_right, image_size - br_bottom),
+            (image_size - tr_right, tr_top))),
+            np.array((
+            (0, 0),
+            (0, image_size),
+            (image_size, image_size),
+            (image_size, 0)
+            )))
+    transformed = warp(rotated, transform, output_shape = (image_size, image_size), order = 1, mode = 'edge')
+    return transformed
+~~~
+
+#### Altogether Now
+Mini pipeline of the pre-processing phase.
+~~~
+# Processing both training and validation sets
+X_train_proc = batchPreprocess(X_train)
+X_valid_proc = batchPreprocess(X_valid)
+
+print("Pre-processing complete!")
+~~~
+Rebalancing based on representation of classes.
+~~~
+unique, counts = np.unique(y_train, return_counts=True)
+print("Original distribution of classes: ", counts)
+multiplier = [int(round(max(counts)/i)) for i in counts] # Required multiplier for each class augmentation.
+print("Multipliers for each class: ", multiplier)
+multiplier = [i-2 for i in multiplier]
+
+X_train_aug = X_train_proc
+y_train_aug = y_train
+
+for i in types:
+    if multiplier[i] > 0: # Ignore classes which don't need oversampling
+        X_train_add = []
+        y_train_add = []
+        index = np.where(y_train==i)
+        for j in index:
+            X_train_add.append(X_train_proc[j])
+            y_train_add.append(y_train[j])
+        X_train_add = np.array(X_train_add)
+        X_train_add = np.reshape(X_train_add, (len(index[0]),32,32,1))
+        y_train_add = np.array(y_train_add)
+        y_train_add = np.reshape(y_train_add, (len(index[0])))
+    
+        print("Class: ", i+1)
+        X_train_add, y_train_add = batchAugment(X_train_add, y_train_add, multiplier[i])
+        X_train_aug = np.vstack((X_train_aug, X_train_add))
+        print("New total dataset size: ",len(X_train_aug))
+        y_train_aug = np.append(y_train_aug, y_train_add)
+        print("")
+
+
+unique, counts = np.unique(y_train_aug, return_counts=True)
+print("New distribution of classes: ", counts)
+~~~
+Output:
+~~~
+Original distribution of classes:  [ 180 1980 2010 1260 1770 1650  360 1290 1260 1320 1800 1170 1890 1920 690 540  360  990 1080  180  300  270  330  450  240 1350  540  210  480  240 390  690  210  599  360 1080 330  180 1860  270  300  210  210]
+
+New distribution of classes:  [1980 1980 2010 1260 1770 1650 2160 1290 1260 1320 1800 1170 1890 1920 2070 2160 2160  990 1080 1980 2100 1890 1980 1800 1920 1350 2160 2100 1920 1920 1950 2070 2100 1797 2160 1080 1980 1980 1860 1890 2100 2100 2100]
+~~~
+
+Here's a histogram of the new distribution. Not perfect, but vastly improved from the earlier spread.
 
 ![alt text][image2]
 
-As a last step, I normalized the image data because ...
 
-I decided to generate additional data because ... 
+Lastly, I tripled the dataset size with rotation and transforms.
+~~~
+# Triple the dataset size by rotation and transformation
+X_train_aug, y_train_aug = batchAugment(X_train_aug, y_train_aug, 1)    
 
-To add more data to the the data set, I used the following techniques because ... 
+print("Augmentation complete!")
+~~~
+Output:
+~~~
+New augmented size is:  234621
+Augmentation complete!
+~~~
 
-Here is an example of an original image and an augmented image:
+#### Visualisation of the Pre-processing Steps
+Here's what the images looked like before, during and after processing!
+
 
 ![alt text][image3]
 
@@ -167,5 +289,4 @@ For the second image ...
 
 ### (Optional) Visualizing the Neural Network (See Step 4 of the Ipython notebook for more details)
 ####1. Discuss the visual output of your trained network's feature maps. What characteristics did the neural network use to make classifications?
-
 
