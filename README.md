@@ -120,7 +120,7 @@ def randomTransform(image, intensity):
             )))
     transformed = warp(rotated, transform, output_shape = (image_size, image_size), order = 1, mode = 'edge')
     return transformed
-~~~
+```
 
 #### Altogether Now
 Mini pipeline of the pre-processing phase.
