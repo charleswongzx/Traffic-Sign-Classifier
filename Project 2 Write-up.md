@@ -1,11 +1,10 @@
 # **Traffic Sign Recognition** 
-
-The aim of this project was to accurately classify traffic signs from the [German Traffic Signs dataset](http://benchmark.ini.rub.de/?section=gtsrb&subsection=dataset) by means of a convolutional neural network.
+---
 
 **Build a Traffic Sign Recognition Network**
 
-Here are the steps I followed:
-* Load the dataset
+When building a network to accurately recognise and classify traffic signs, I followed these steps:
+* Load the data set (I used the German Traffic Signs Dataset, **link below**!)
 * Explore, summarize and visualize the dataset
 * Pre-process, balance and augment the dataset
 * Design, train and test a model architecture
@@ -16,31 +15,28 @@ Here are the steps I followed:
 [//]: # (Image References)
 
 [image1]: ./images/hist_orig.png "Visualisation"
-[image2]: ./images/hist_new.png "New Visualisation"
-[image3]: ./images/processed_images.png "Processed Images"
-[image4]: ./images/test_web.png "Web Test"
-[image5]: ./images/results_web1.png "Web Results 1"
-[image6]: ./images/results_web2.png "Web Results 2"
-[image7]: ./images/results_web3.png "Web Results 3"
-[image8]: ./images/results_web4.png "Web Results 4"
-[image9]: ./images/results_web5.png "Web Results 5"
-[image10]: ./images/results_web6.png "Web Results 6"
-
+[image2]: ./images/hist_new "New Visualisation"
+[image3]: ./images/processed_images.jpg "Processed Images"
+[image4]: ./images/test_web.png "Test Web"
+[image5]: ./examples/placeholder.png "Traffic Sign 2"
+[image6]: ./examples/placeholder.png "Traffic Sign 3"
+[image7]: ./examples/placeholder.png "Traffic Sign 4"
+[image8]: ./examples/placeholder.png "Traffic Sign 5"
 
 
 Here's a link to my [Github repo](https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project/blob/master/Traffic_Sign_Classifier.ipynb).
 
 ### Data Set Summary & Exploration
 Stats are as follows:
-*Number of training examples = 34799
-*Number of vaidation examples = 4410
-*Number of testing examples = 12630
-*Image data shape = (32, 32, 3)
-*Number of classes = 43
+Number of training examples = 34799
+Number of vaidation examples = 4410
+Number of testing examples = 12630
+Image data shape = (32, 32, 3)
+Number of classes = 43
 
 ####  Exploratory Visualization of the Dataset
 
-The German Traffic Signs dataset is visualised in the below histogram. It is split into 43 categories, with the number of images in each category on the y-axis. Note the extremely unequal distribution of the dataset. This can and will introduce bias into the training model, and will be addressed below. Also, a low of ~200 examples for some classes is simply too low, and will need to be augmented.
+The German Traffic Signs dataset is visualised in the below histogram. It is split into 43 categories of signs, with the number of images in each category on the y-axis. Note the extremely unequal distribution of the dataset. This can and will introduce bias into the training model, and will be addressed below. Also, a low of ~200 examples for some classes is simply too low, and will need to be augmented.
 
 ![alt text][image1]
 
@@ -89,7 +85,7 @@ def batchPreprocess(X):
 #### Augmentation (Transformation)
 Here, I employed rotation (within a certain degree range) and warping through projective transforms (skimage). Projective transforms were chosen due to their similarity to changes in camera perspective.
 
-Credits to Alex for helping me figure out projective transforms! His blog [here](http://navoshta.com/).
+Credits to navoshta for helping me figure out projective transforms!
 
 NOTE: In earlier testing, doubling the dataset size without re-balancing it already yielded an accuracy of 95% on the validation data. While that seems nice, there is a high chance that the incorrect 5% stems from under-represented classes, rendering the prediction useless.
 ```python
@@ -192,7 +188,7 @@ X_train_aug, y_train_aug = batchAugment(X_train_aug, y_train_aug, 1)
 print("Augmentation complete!")
 ```
 Output:
-```
+```python
 New augmented size is:  234621
 Augmentation complete!
 ```
@@ -268,12 +264,6 @@ Test Accuracy = 0.167
 Ouch! Let's see what went wrong.
 
 ![alt text][image5]
-![alt text][image6]
-![alt text][image7]
-![alt text][image8]
-![alt text][image9]
-![alt text][image10]
-
 
 Look like the model only got Bumpy road and Slippery road right. Understandable, given these were the only two clear signs.
 
@@ -287,4 +277,5 @@ Not sure what happened with pedestrians either. It seemed REALLY confident about
 Overall, the model performed rather well in initial testing, but faltered on images taken from the wild. To be fair, the images from the web differed greatly from the supplied training set. Further refinement, augmentation and perhaps simply more, varied data could help the model generalise and deal with the challenge better. 
 
 Moving forward, I'd like to try implementing models from other successful papers to gain a better intuition of the design choices when building a model. I note that the LeNet model was initially built for low-res classification of the MNIST dataset, a considerably simpler and less varied challenge.
+
 
