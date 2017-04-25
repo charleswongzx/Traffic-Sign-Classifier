@@ -16,8 +16,8 @@ Here are the steps I followed:
 [//]: # (Image References)
 
 [image1]: ./images/hist_orig.png "Visualisation"
-[image2]: ./images/hist_new "New Visualisation"
-[image3]: ./images/processed_images.jpg "Processed Images"
+[image2]: ./images/hist_new.png "New Visualisation"
+[image3]: ./images/processed_images.png "Processed Images"
 [image4]: ./images/test_web.png "Web Test"
 [image5]: ./images/results_web.png "Web Results"
 
