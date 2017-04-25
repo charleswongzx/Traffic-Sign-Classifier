@@ -1,10 +1,11 @@
 # **Traffic Sign Recognition** 
----
+
+The aim of this project was to accurately classify traffic signs from the [German Traffic Signs dataset](http://benchmark.ini.rub.de/?section=gtsrb&subsection=dataset) by means of a convolutional neural network.
 
 **Build a Traffic Sign Recognition Network**
 
-When building a network to accurately recognise and classify traffic signs, I followed these steps:
-* Load the data set (I used the German Traffic Signs Dataset, **link below**!)
+Here are the steps I followed:
+* Load the dataset
 * Explore, summarize and visualize the dataset
 * Pre-process, balance and augment the dataset
 * Design, train and test a model architecture
@@ -15,28 +16,25 @@ When building a network to accurately recognise and classify traffic signs, I fo
 [//]: # (Image References)
 
 [image1]: ./images/hist_orig.png "Visualisation"
-[image2]: ./examples/hist_new "New Visualisation"
-[image3]: ./examples/processed_images.jpg "Processed Images"
-[image4]: ./examples/placeholder.png "Traffic Sign 1"
-[image5]: ./examples/placeholder.png "Traffic Sign 2"
-[image6]: ./examples/placeholder.png "Traffic Sign 3"
-[image7]: ./examples/placeholder.png "Traffic Sign 4"
-[image8]: ./examples/placeholder.png "Traffic Sign 5"
+[image2]: ./images/hist_new "New Visualisation"
+[image3]: ./images/processed_images.jpg "Processed Images"
+[image4]: ./images/test_web.png "Web Test"
+[image5]: ./images/results_web.png "Web Results"
 
 
 Here's a link to my [Github repo](https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project/blob/master/Traffic_Sign_Classifier.ipynb).
 
 ### Data Set Summary & Exploration
 Stats are as follows:
-Number of training examples = 34799
-Number of vaidation examples = 4410
-Number of testing examples = 12630
-Image data shape = (32, 32, 3)
-Number of classes = 43
+*Number of training examples = 34799
+*Number of vaidation examples = 4410
+*Number of testing examples = 12630
+*Image data shape = (32, 32, 3)
+*Number of classes = 43
 
 ####  Exploratory Visualization of the Dataset
 
-The German Traffic Signs dataset is visualised in the below histogram. It is split into 43 categories of signs, with the number of images in each category on the y-axis. Note the extremely unequal distribution of the dataset. This can and will introduce bias into the training model, and will be addressed below. Also, a low of ~200 examples for some classes is simply too low, and will need to be augmented.
+The German Traffic Signs dataset is visualised in the below histogram. It is split into 43 categories, with the number of images in each category on the y-axis. Note the extremely unequal distribution of the dataset. This can and will introduce bias into the training model, and will be addressed below. Also, a low of ~200 examples for some classes is simply too low, and will need to be augmented.
 
 ![alt text][image1]
 
@@ -65,7 +63,7 @@ Rather self-explanatory - shuffles the dataset around so that the model doesn't 
 My batch preprocess function is as follows. I began with conversion to grayscale, contrast limited adaptive histogram equalisation and normalisation from -1 to 1.
 
 I initially used OpenCV's histogram equalisation, but found skimage's CLAHE implementation gave a much better result with more defined edges.
-~~~
+```python
 from skimage import exposure
 from sklearn.utils import shuffle
 from skimage import exposure
@@ -80,15 +78,15 @@ def batchPreprocess(X):
             equ = np.reshape(equ,(32,32,1))-1
             X_norm.append(equ)
     return np.array(X_norm)
-~~~
+```
 
 #### Augmentation (Transformation)
 Here, I employed rotation (within a certain degree range) and warping through projective transforms (skimage). Projective transforms were chosen due to their similarity to changes in camera perspective.
 
-Credits to navoshta for helping me figure out projective transforms!
+Credits to Alex for helping me figure out projective transforms! His blog [here](http://navoshta.com/).
 
 NOTE: In earlier testing, doubling the dataset size without re-balancing it already yielded an accuracy of 95% on the validation data. While that seems nice, there is a high chance that the incorrect 5% stems from under-represented classes, rendering the prediction useless.
-~~~
+```python
 def randomTransform(image, intensity):
     
     # Rotate image within a set range, amplified by intensity of overall transform.
@@ -126,15 +124,15 @@ def randomTransform(image, intensity):
 
 #### Altogether Now
 Mini pipeline of the pre-processing phase.
-~~~
+```python
 # Processing both training and validation sets
 X_train_proc = batchPreprocess(X_train)
 X_valid_proc = batchPreprocess(X_valid)
 
 print("Pre-processing complete!")
-~~~
+```
 Rebalancing based on representation of classes.
-~~~
+```python
 unique, counts = np.unique(y_train, return_counts=True)
 print("Original distribution of classes: ", counts)
 multiplier = [int(round(max(counts)/i)) for i in counts] # Required multiplier for each class augmentation.
@@ -167,13 +165,13 @@ for i in types:
 
 unique, counts = np.unique(y_train_aug, return_counts=True)
 print("New distribution of classes: ", counts)
-~~~
+```
 Output:
-~~~
+```python
 Original distribution of classes:  [ 180 1980 2010 1260 1770 1650  360 1290 1260 1320 1800 1170 1890 1920 690 540  360  990 1080  180  300  270  330  450  240 1350  540  210  480  240 390  690  210  599  360 1080 330  180 1860  270  300  210  210]
 
 New distribution of classes:  [1980 1980 2010 1260 1770 1650 2160 1290 1260 1320 1800 1170 1890 1920 2070 2160 2160  990 1080 1980 2100 1890 1980 1800 1920 1350 2160 2100 1920 1920 1950 2070 2100 1797 2160 1080 1980 1980 1860 1890 2100 2100 2100]
-~~~
+```
 
 Here's a histogram of the new distribution. Not perfect, but vastly improved from the earlier spread.
 
@@ -181,17 +179,17 @@ Here's a histogram of the new distribution. Not perfect, but vastly improved fro
 
 
 Lastly, I tripled the dataset size with rotation and transforms.
-~~~
+```python
 # Triple the dataset size by rotation and transformation
 X_train_aug, y_train_aug = batchAugment(X_train_aug, y_train_aug, 1)    
 
 print("Augmentation complete!")
-~~~
+```
 Output:
-~~~
+```python
 New augmented size is:  234621
 Augmentation complete!
-~~~
+```
 
 #### Visualisation of the Pre-processing Steps
 Here's what the images looked like before, during and after processing! Note how much more clearly defined the edges are after equalisation, and the variations produced by the augmentation step.
@@ -205,7 +203,7 @@ What follows is an implementation of the LeNet-5 architecture. Only major change
 
 Here, I attempted to address the unequal distribution of data by implementing a weighted cross entropy loss, heavily penalising mistakes on poorly represented classes, making the model 'pay more attention' to these examples, but performance actually suffered. Will investigate this technique in future models.
 
-My final model consisted of the following layers:
+My final model was constructed as follows:
 
 | Layer         		|     Description	        					| 
 |:---------------------:|:---------------------------------------------:| 
@@ -227,7 +225,7 @@ My final model consisted of the following layers:
  
 #### Parameters and Training Pipline
 Values were chosen after much trial and error, and observation of model behaviour. To train the model, the AdamOptimizer was used.
-~~~
+```python
 EPOCHS = 20
 BATCH_SIZE = 128
 rate = 0.0009
@@ -237,10 +235,10 @@ cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_hot_y, logits
 loss_operation = tf.reduce_mean(cross_entropy)
 optimizer = tf.train.AdamOptimizer(learning_rate = rate)
 training_operation = optimizer.minimize(loss_operation)
-~~~
+```
 
 #### Results
-During initial testing, I simply threw in a stock dataset with only grayscaling and OpenCV equalisation applied. Already, the network achieved a **92.3%** accuracy on the validation set. I did not try it on the test set at the time, but I imagine it would not have done very well. The dataset was very imbalanced, and the model would likely have been poorly generalised.
+During initial testing, I simply threw in the stock dataset with only grayscaling and OpenCV equalisation applied. Already, the network achieved a **92.3%** accuracy on the validation set. I did not try it on the test set at the time, but I imagine it would not have done very well. The dataset was very imbalanced, and the model would likely have been poorly generalised.
 
 Curious, I attempted a 2x augmentation with no re-balancing. There was much more data now, but bias was strong. To my surprise, the network achieved **95.8%** on the validation set!
 
@@ -250,50 +248,31 @@ After re-balancing and 3x augmentation, I wound up with a validation accuracy of
 
 I wound up not changing the model architecture much, as I felt this implementation was sufficient to hit my target of 93% accuracy. Further exploration in this area needed.
 
-###Test a Model on New Images
+#### Test Set Pulled From The Web
+The following are 6 images I pulled from the web. The only requirements I set were that they were German, and already existed in the signnames.csv database. Throwing in a completely new, never-before-seen sign with no respective label would be rather unfair.
 
-####1. Choose five German traffic signs found on the web and provide them in the report. For each image, discuss what quality or qualities might be difficult to classify.
+Note image 6, which is a composition of 13: yield and 40: roundabout. I was curious to see how the model would react to a curveball like this. Let's see.
 
-Here are five German traffic signs that I found on the web:
+![alt text][image4]
 
-![alt text][image4] ![alt text][image5] ![alt text][image6] 
-![alt text][image7] ![alt text][image8]
+### Results
+```
+Test Accuracy = 0.167
+```
+Ouch! Let's see what went wrong.
 
-The first image might be difficult to classify because ...
+![alt text][image5]
 
-####2. Discuss the model's predictions on these new traffic signs and compare the results to predicting on the test set. At a minimum, discuss what the predictions were, the accuracy on these new predictions, and compare the accuracy to the accuracy on the test set (OPTIONAL: Discuss the results in more detail as described in the "Stand Out Suggestions" part of the rubric).
+Look like the model only got Bumpy road and Slippery road right. Understandable, given these were the only two clear signs.
 
-Here are the results of the prediction:
+Road works and yield/roundabout were both completely off the mark. Perhaps more training with obstructed/shadowed/compound signs would have **yielded** (sorry) better results.
 
-| Image			        |     Prediction	        					| 
-|:---------------------:|:---------------------------------------------:| 
-| Stop Sign      		| Stop sign   									| 
-| U-turn     			| U-turn 										|
-| Yield					| Yield											|
-| 100 km/h	      		| Bumpy Road					 				|
-| Slippery Road			| Slippery Road      							|
+Perhaps dialing up my intensity for warping during my ```batchAugment()``` stage would have helped with the Stop sign, giving better recognition to objects that were clearly no longer circular.
 
+Not sure what happened with pedestrians either. It seemed REALLY confident about the sign being Ahead only, which would no doubt spell disaster for said pedestrians.
 
-The model was able to correctly guess 4 of the 5 traffic signs, which gives an accuracy of 80%. This compares favorably to the accuracy on the test set of ...
+### Conclusion
+Overall, the model performed rather well in initial testing, but faltered on images taken from the wild. To be fair, the images from the web differed greatly from the supplied training set. Further refinement, augmentation and perhaps simply more, varied data could help the model generalise and deal with the challenge better. 
 
-####3. Describe how certain the model is when predicting on each of the five new images by looking at the softmax probabilities for each prediction. Provide the top 5 softmax probabilities for each image along with the sign type of each probability. (OPTIONAL: as described in the "Stand Out Suggestions" part of the rubric, visualizations can also be provided such as bar charts)
-
-The code for making predictions on my final model is located in the 11th cell of the Ipython notebook.
-
-For the first image, the model is relatively sure that this is a stop sign (probability of 0.6), and the image does contain a stop sign. The top five soft max probabilities were
-
-| Probability         	|     Prediction	        					| 
-|:---------------------:|:---------------------------------------------:| 
-| .60         			| Stop sign   									| 
-| .20     				| U-turn 										|
-| .05					| Yield											|
-| .04	      			| Bumpy Road					 				|
-| .01				    | Slippery Road      							|
-
-
-For the second image ... 
-
-### (Optional) Visualizing the Neural Network (See Step 4 of the Ipython notebook for more details)
-####1. Discuss the visual output of your trained network's feature maps. What characteristics did the neural network use to make classifications?
-
+Moving forward, I'd like to try implementing models from other successful papers to gain a better intuition of the design choices when building a model. I note that the LeNet model was initially built for low-res classification of the MNIST dataset, a considerably simpler and less varied challenge.
 
