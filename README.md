@@ -27,9 +27,6 @@ Here are the steps I followed:
 [image10]: ./images/results_web6.png "Web Results 6"
 
 
-
-Here's a link to my [Github repo](https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project/blob/master/Traffic_Sign_Classifier.ipynb).
-
 ### Data Set Summary & Exploration
 Stats are as follows:
 *Number of training examples = 34799
