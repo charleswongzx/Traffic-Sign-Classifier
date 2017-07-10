@@ -12,6 +12,8 @@ Here are the steps I followed:
 * Use the model to make predictions on new images
 * Analyze the softmax probabilities of the new images
 
+You can view my workflow in Traffic_Signs_Classifier.ipynb.
+
 
 [//]: # (Image References)
 
